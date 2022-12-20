@@ -1,0 +1,7 @@
+
+_______________________ SensitiveCLF METRICS ____________________
+Area under ROCurve: 0.9908661740558292
+Accuracy : 0.94
+Precision : 0.940677966101695
+Recall : 0.9568965517241379
+F1 score :0.9487179487179486

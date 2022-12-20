@@ -1,0 +1,12 @@
+
+Area under ROCurve: 0.9099
+Accuracy : 0.85
+Precision : 0.85
+Recall : 0.85
+F1 score :0.85
+
+_______________________ FAIRESS METRICS ____________________
+DSP: 0.6568144499178982
+DEO: 0.5480295566502463
+DAO: 0.32840722495894914
+

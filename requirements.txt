@@ -1,0 +1,13 @@
+dice_ml==0.7.2
+lightgbm==3.3.2
+matplotlib==3.5.3
+numpy==1.21.6
+pandas==1.4.3
+scikit_learn==1.2.0
+scikit_learn_intelex==2021.6.3
+scipy==1.7.3
+tabulate==0.8.10
+tensorflow==2.9.1
+tqdm==4.62.3
+xgboost==1.6.1
+# protobuf==3.20.2
