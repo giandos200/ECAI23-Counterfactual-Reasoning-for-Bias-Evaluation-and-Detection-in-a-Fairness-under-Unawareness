@@ -1,8 +1,13 @@
 import pandas as pd
 import numpy as np
 import copy
+import src.MACE.normalizedDistance
+from src.MACE.modelConversion import *
+from src.MACE.utils import *
+from pysmt.shortcuts import *
+from pysmt.typing import *
 
-from loadData import Dataset
+from src.MACE.loadData import Dataset
 
 VALID_ATTRIBUTE_DATA_TYPES = { \
   'numeric-int', \
@@ -193,15 +198,30 @@ class DatasetAttribute(object):
     self.upper_bound = upper_bound
 
 class MACE:
-    def __init__(self, dataset, model, outcome, numvars, catvars, eps: 1e-3, norm_type='one_norm', random_seed=42):
+    def __init__(self, data, xtrain, model, outcome, numvars, catvars, eps: 1e-3, norm_type='one_norm', random_seed=42):
         self.numvars = numvars
         self.catvars = catvars
-        self.eps = eps
-        self.norm = norm_type
+        self.epsilon = eps
+        self.approach_string = 'MACE'
+        self.norm_type = norm_type
         self.SEED = random_seed
+        dataset = data.copy()
+        self.Cat_Map = {}
+        l = numvars.copy()
+        l.extend(catvars.copy())
+        dataset = dataset[l]
+        # [st for st in model.steps[0][1].get_feature_names_out().tolist()]
+        for c in catvars:
+          self.Cat_Map[c] = {}
+          sortUnique = xtrain[c].unique().tolist()
+          sortUnique.sort()
+          for n,val in enumerate(sortUnique):
+            self.Cat_Map[c][val] = n+1
+            dataset.replace(val,n+1,inplace=True)
         if len(catvars) >0 :
             self.one_hot = True
-        input_cols, output_col = numvars+catvars, outcome.columns.tolist()
+
+        input_cols, output_col = l, outcome.name
         attributes_non_hot = {}
         attributes_non_hot[output_col] = DatasetAttribute(
           attr_name_long=output_col,
@@ -212,8 +232,8 @@ class MACE:
           mutability=False,
           parent_name_long=-1,
           parent_name_kurz=-1,
-          lower_bound=outcome[output_col].min(),
-          upper_bound=outcome[output_col].max())
+          lower_bound=outcome.min(),
+          upper_bound=outcome.max())
         for col_idx, col_name in enumerate(input_cols):
           if col_name in numvars:
             attr_type = 'numeric-real'
@@ -241,7 +261,10 @@ class MACE:
         else:
           data_frame, attributes = dataset, attributes_non_hot
 
-        self.dataset_obj = Dataset(data_frame, attributes, return_one_hot=self.one_hot, dataset_name=None)
+        assert model.steps[0][1].get_feature_names_out().tolist().__len__() == data_frame.columns.to_list().__len__()
+        assert (model.steps[0][1].transform(data)[:,len(numvars):] ==  data_frame.values[:,len(numvars):]).sum() ==\
+               data_frame.shape[0]*data_frame.values[:, len(numvars):].shape[1]
+        self.dataset_obj = Dataset(data_frame, attributes, is_one_hot=self.one_hot, dataset_name=None)
         self.model = model
         all_prediction = model.predict(dataset)
         self.positive_pred = all_prediction[all_prediction==1]
@@ -256,4 +279,220 @@ class MACE:
         observable_data = self.positive_pred.T.to_dict()
       for factual_sample_index, factual_sample in candidate_factuals.items():
         factual_sample['y'] = bool(self.model.predict(sample[factual_sample_index]))
+        for attr_name_kurz in self.dataset_obj.getInputAttributeNames('kurz'):
+          attr_obj = self.dataset_obj.attributes_kurz[attr_name_kurz]
+          lower_bound = attr_obj.lower_bound
+          upper_bound = attr_obj.upper_bound
+          model_symbols = {
+            'counterfactual': {},
+            'interventional': {},
+            'output': {'y': {'symbol': Symbol('y', BOOL)}}
+          }
+          if attr_name_kurz not in self.dataset_obj.getInputAttributeNames('kurz'):
+            continue  # do not overwrite the output
+          if attr_obj.attr_type == 'numeric-real':
+            model_symbols['counterfactual'][attr_name_kurz] = {
+              'symbol': Symbol(attr_name_kurz + '_counterfactual', REAL),
+              'lower_bound': Real(float(lower_bound)),
+              'upper_bound': Real(float(upper_bound))
+            }
+            model_symbols['interventional'][attr_name_kurz] = {
+              'symbol': Symbol(attr_name_kurz + '_interventional', REAL),
+              'lower_bound': Real(float(lower_bound)),
+              'upper_bound': Real(float(upper_bound))
+            }
+          else:  # refer to loadData.VALID_ATTRIBUTE_TYPES
+            model_symbols['counterfactual'][attr_name_kurz] = {
+              'symbol': Symbol(attr_name_kurz + '_counterfactual', INT),
+              'lower_bound': Int(int(lower_bound)),
+              'upper_bound': Int(int(upper_bound))
+            }
+            model_symbols['interventional'][attr_name_kurz] = {
+              'symbol': Symbol(attr_name_kurz + '_interventional', INT),
+              'lower_bound': Int(int(lower_bound)),
+              'upper_bound': Int(int(upper_bound))
+            }
+      all_counterfactuals, closest_counterfactual_sample, closest_interventional_sample = self.findClosestCounterfactualSample(
+        self.model_trained,
+        model_symbols,
+        self.dataset_obj,
+        factual_sample,
+        self.norm_type,
+        self.approach_string,
+        self.epsilon
+      )
+
+    @staticmethod
+    def findClosestCounterfactualSample(model_trained, model_symbols, dataset_obj, factual_sample, norm_type,
+                                        approach_string, epsilon):
+
+      def getCenterNormThresholdInRange(lower_bound, upper_bound):
+        return (lower_bound + upper_bound) / 2
+
+      def assertPrediction(dict_sample, model_trained, dataset_obj):
+        vectorized_sample = []
+        for attr_name_kurz in dataset_obj.getInputAttributeNames('kurz'):
+          vectorized_sample.append(dict_sample[attr_name_kurz])
+
+        sklearn_prediction = int(model_trained.predict([vectorized_sample])[0])
+        pysmt_prediction = int(dict_sample['y'])
+        factual_prediction = int(factual_sample['y'])
+
+        # IMPORTANT: sometimes, MACE does such a good job, that the counterfactual
+        #            ends up super close to (if not on) the decision boundary; here
+        #            the label is underfined which causes inconsistency errors
+        #            between pysmt and sklearn. We skip the assert at such points.
+        class_predict_proba = model_trained.predict_proba([vectorized_sample])[0]
+        if np.abs(class_predict_proba[0] - class_predict_proba[1]) < 1e-10:
+          return
+
+        assert sklearn_prediction == pysmt_prediction, 'Pysmt prediction does not match sklearn prediction.'
+        assert sklearn_prediction != factual_prediction, 'Counterfactual and factual samples have the same prediction.'
+
+      # Convert to pysmt_sample so factual symbols can be used in formulae
+      factual_pysmt_sample = getPySMTSampleFromDictSample(factual_sample, dataset_obj)
+
+      norm_lower_bound = 0
+      norm_upper_bound = 1
+      curr_norm_threshold = getCenterNormThresholdInRange(norm_lower_bound, norm_upper_bound)
+
+      # Get and merge all constraints
+      print('Constructing initial formulas: model, counterfactual, distance, plausibility, diversity\t\t', end='')
+      model_formula = getModelFormula(model_symbols, model_trained)
+      counterfactual_formula = getCounterfactualFormula(model_symbols, factual_pysmt_sample)
+      plausibility_formula = getPlausibilityFormula(model_symbols, dataset_obj, factual_pysmt_sample, approach_string)
+      distance_formula = getDistanceFormula(model_symbols, dataset_obj, factual_pysmt_sample, norm_type,
+                                            approach_string, curr_norm_threshold)
+      diversity_formula = TRUE()  # simply initialize and modify later as new counterfactuals come in
+      print('done.')
+
+      iters = 1
+      max_iters = 100
+      counterfactuals = []  # list of tuples (samples, distances)
+      # In case no counterfactuals are found (this could happen for a variety of
+      # reasons, perhaps due to non-plausibility), return a template counterfactual
+      counterfactuals.append({
+        'counterfactual_sample': {},
+        'counterfactual_distance': np.infty,
+        'interventional_sample': {},
+        'interventional_distance': np.infty,
+        'time': np.infty,
+        'norm_type': norm_type})
+
+      print('Solving (not searching) for closest counterfactual using various distance thresholds...')
+
+      while iters < max_iters and norm_upper_bound - norm_lower_bound >= epsilon:
+        print(f"\nIteration step: {iters}")
+        print(
+          f'\tIteration #{iters:03d}: testing norm threshold {curr_norm_threshold:.6f} in range [{norm_lower_bound:.6f}, {norm_upper_bound:.6f}]...\t',
+          end='')
+        iters = iters + 1
+
+        formula = And(  # works for both initial iteration and all subsequent iterations
+          model_formula,
+          counterfactual_formula,
+          plausibility_formula,
+          distance_formula,
+          diversity_formula,
+        )
+
+        solver_name = "z3"
+        with Solver(name=solver_name) as solver:
+          solver.add_assertion(formula)
+
+          solved = solver.solve()
+
+          if solved:  # joint formula is satisfiable
+            model = solver.get_model()
+            print('solution exists & found.')
+            counterfactual_pysmt_sample = {}
+            interventional_pysmt_sample = {}
+            for (symbol_key, symbol_value) in model:
+              # symbol_key may be 'x#', {'p0#', 'p1#'}, 'w#', or 'y'
+              tmp = str(symbol_key)
+              if 'counterfactual' in str(symbol_key):
+                tmp = tmp[:-15]
+                if tmp in dataset_obj.getInputOutputAttributeNames('kurz'):
+                  counterfactual_pysmt_sample[tmp] = symbol_value
+              elif 'interventional' in str(symbol_key):
+                tmp = tmp[:-15]
+                if tmp in dataset_obj.getInputOutputAttributeNames('kurz'):
+                  interventional_pysmt_sample[tmp] = symbol_value
+              elif tmp in dataset_obj.getInputOutputAttributeNames('kurz'):  # for y variable
+                counterfactual_pysmt_sample[tmp] = symbol_value
+                interventional_pysmt_sample[tmp] = symbol_value
+
+            # Convert back from pysmt_sample to dict_sample to compute distance and save
+            counterfactual_sample = getDictSampleFromPySMTSample(
+              counterfactual_pysmt_sample,
+              dataset_obj)
+            interventional_sample = getDictSampleFromPySMTSample(
+              interventional_pysmt_sample,
+              dataset_obj)
+
+            # Assert samples have correct prediction label according to sklearn model
+            assertPrediction(counterfactual_sample, model_trained, dataset_obj)
+            # of course, there is no need to assertPrediction on the interventional_sample
+
+            counterfactual_distance = normalizedDistance.getDistanceBetweenSamples(
+              factual_sample,
+              counterfactual_sample,
+              norm_type,
+              dataset_obj)
+            interventional_distance = normalizedDistance.getDistanceBetweenSamples(
+              factual_sample,
+              interventional_sample,
+              norm_type,
+              dataset_obj)
+
+            counterfactuals.append({
+              'counterfactual_sample': counterfactual_sample,
+              'counterfactual_distance': counterfactual_distance,
+              'interventional_sample': interventional_sample,
+              'interventional_distance': interventional_distance,
+              'norm_type': norm_type})
+
+            # Update diversity and distance formulas now that we have found a solution
+            # TODO: I think the line below should be removed, because in successive
+            #       reductions of delta, we should be able to re-use previous CFs
+            # diversity_formula = And(diversity_formula, getDiversityFormulaUpdate(model))
+
+            # IMPORTANT: something odd happens somtimes if use vanilla binary search;
+            #            On the first iteration, with [0, 1] bounds, we may see a CF at
+            #            d = 0.22. When we update the bounds to [0, 0.5] bounds,  we
+            #            sometimes surprisingly see a new CF at distance 0.24. We optimize
+            #            the binary search to solve this.
+            norm_lower_bound = norm_lower_bound
+            # norm_upper_bound = curr_norm_threshold
+            if 'mace' in approach_string:
+              norm_upper_bound = float(counterfactual_distance + epsilon / 100)  # not float64
+            elif 'mint' in approach_string:
+              norm_upper_bound = float(interventional_distance + epsilon / 100)  # not float64
+            curr_norm_threshold = getCenterNormThresholdInRange(norm_lower_bound, norm_upper_bound)
+            distance_formula = getDistanceFormula(model_symbols, dataset_obj, factual_pysmt_sample, norm_type,
+                                                  approach_string, curr_norm_threshold)
+
+          else:  # no solution found in the assigned norm range --> update range and try again
+            with Solver(name=solver_name) as neg_solver:
+              neg_formula = Not(formula)
+              neg_solver.add_assertion(neg_formula)
+              neg_solved = neg_solver.solve()
+              if neg_solved:
+                print('no solution exists.')
+                norm_lower_bound = curr_norm_threshold
+                norm_upper_bound = norm_upper_bound
+                curr_norm_threshold = getCenterNormThresholdInRange(norm_lower_bound, norm_upper_bound)
+                distance_formula = getDistanceFormula(model_symbols, dataset_obj, factual_pysmt_sample, norm_type,
+                                                      approach_string, curr_norm_threshold)
+              else:
+                print('no solution found (SMT issue).')
+                quit()
+                break
+
+      # IMPORTANT: there may be many more at this same distance! OR NONE! (what?? 2020.02.19)
+      closest_counterfactual_sample = sorted(counterfactuals, key=lambda x: x['counterfactual_distance'])[0]
+      closest_interventional_sample = sorted(counterfactuals, key=lambda x: x['interventional_distance'])[0]
+
+      return counterfactuals, closest_counterfactual_sample, closest_interventional_sample
+
 

@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import os
 from src.utils.dataloader import dataLoader
+from src.MACE.MACE import MACE
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -68,7 +69,7 @@ class GenerateCF(ABC):
         for model in self.config['models'].keys():
             print(f'Starting model: {model}!')
             self.pipeline(model)
-            self.initDice()
+            self.initDice_MACE()
             risultati = {}
             risultati['genetic'] = []
             # df_genetic = pd.DataFrame(columns=self.df.columns.to_list()+[self.sensitiveFeature])
@@ -147,13 +148,16 @@ class GenerateCF(ABC):
             self.pipe.fit(self.x_train, self.y_train[self.outcomeFeature])
         self.evaluate(model)
 
-    def initDice(self):
+    def initDice_MACE(self):
         DF = pd.concat([self.df,self.target[self.outcomeFeature]],axis=1)
         self.d = Data(dataframe = DF, continuous_features=self.numvars, outcome_name=self.outcomeFeature)
         m = Model(model=self.pipe, backend="sklearn")
         # self.exp_random = Dice(self.d, m, method="random")
         self.exp_genetic = Dice(self.d, m, method="genetic")
         self.exp_KD = Dice(self.d, m, method="kdtree")
+        self.MACE = MACE(data=self.df, xtrain=self.x_train, model = self.pipe, outcome=self.target[self.outcomeFeature],
+                         numvars=self.numvars, catvars=self.categorical,eps=1e-3,norm_type='one_norm',
+                         random_seed=self.config['seed'])
 
 
     def evaluate(self,model):
