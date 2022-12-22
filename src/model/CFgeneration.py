@@ -82,22 +82,26 @@ class GenerateCF(ABC):
                         ds = 0
                     else:
                         ds = 1
-                    for cFtype, expCF in [('genetic', self.exp_genetic),('KDtree', self.exp_KD)]:
+                    for cFtype, expCF in [('MACE', self.exp_MACE),('genetic', self.exp_genetic),('KDtree', self.exp_KD)]:
                         # if expCF == self.exp_random:
                             # if self.config['data']  =='toy-dataset':
                             #     continue
                             # print('Counterfactuals Random Generation Initialized!')
                             # dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
                             #                                           verbose=True, random_seed=42)
+                        print(f'Counterfactuals {cFtype.capitalize()} Generation Initialized!')
                         if expCF == self.exp_genetic:
                             print('Counterfactuals Genetic Generation Initialized!')
                             dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'],
                                                                       desired_class=ds, verbose=True,
                                                                       posthoc_sparsity_algorithm="binary")
                         elif expCF == self.exp_KD:
-                            print('Counterfactuals KDtree Generation Initialized!')
                             dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
                                                                       verbose=True, posthoc_sparsity_algorithm="binary")
+                        elif expCF == self.exp_MACE:
+                            expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
+                                                                      verbose=True,)
+
 
                         CF = dice_exp.cf_examples_list[0].final_cfs_df
 
@@ -155,7 +159,7 @@ class GenerateCF(ABC):
         # self.exp_random = Dice(self.d, m, method="random")
         self.exp_genetic = Dice(self.d, m, method="genetic")
         self.exp_KD = Dice(self.d, m, method="kdtree")
-        self.MACE = MACE(data=self.df, xtrain=self.x_train, model = self.pipe, outcome=self.target[self.outcomeFeature],
+        self.exp_MACE = MACE(data=self.df, xtrain=self.x_train, model = self.pipe, outcome=self.target[self.outcomeFeature],
                          numvars=self.numvars, catvars=self.categorical,eps=1e-3,norm_type='one_norm',
                          random_seed=self.config['seed'])
 

@@ -210,6 +210,7 @@ class MACE:
         l = numvars.copy()
         l.extend(catvars.copy())
         dataset = dataset[l]
+        dataset = pd.concat([outcome, dataset],1)
         # [st for st in model.steps[0][1].get_feature_names_out().tolist()]
         for c in catvars:
           self.Cat_Map[c] = {}
@@ -232,8 +233,8 @@ class MACE:
           mutability=False,
           parent_name_long=-1,
           parent_name_kurz=-1,
-          lower_bound=outcome.min(),
-          upper_bound=outcome.max())
+          lower_bound=dataset[output_col].min(),
+          upper_bound=dataset[output_col].max())
         for col_idx, col_name in enumerate(input_cols):
           if col_name in numvars:
             attr_type = 'numeric-real'
@@ -261,24 +262,36 @@ class MACE:
         else:
           data_frame, attributes = dataset, attributes_non_hot
 
-        assert model.steps[0][1].get_feature_names_out().tolist().__len__() == data_frame.columns.to_list().__len__()
-        assert (model.steps[0][1].transform(data)[:,len(numvars):] ==  data_frame.values[:,len(numvars):]).sum() ==\
-               data_frame.shape[0]*data_frame.values[:, len(numvars):].shape[1]
+        assert model.steps[0][1].get_feature_names_out().tolist().__len__() == data_frame.columns.to_list().__len__()-1
+        assert (model.steps[0][1].transform(data)[:,len(numvars):] ==  data_frame.values[:,len(numvars)+1:]).sum() ==\
+               data_frame.shape[0]*data_frame.values[:, len(numvars)+1:].shape[1]
         self.dataset_obj = Dataset(data_frame, attributes, is_one_hot=self.one_hot, dataset_name=None)
         self.model = model
-        all_prediction = model.predict(dataset)
-        self.positive_pred = all_prediction[all_prediction==1]
-        self.negative_pred = all_prediction[all_prediction==0]
+        all_prediction = model.predict(data)
+        all_pred_data_df = self.dataset_obj.data_frame_kurz
+        self.standard_deviation = list(all_pred_data_df.std())[1:]
+        all_pred_data_df['y'] = all_prediction
+        numvars_kurz = []
+        for n,ncol in enumerate(numvars):
+          numvars_kurz.append(f'x{n}')
+        all_pred_data_df[numvars_kurz] = model.steps[0][1].transform(data)[:,:len(numvars)]
+        self.positive_pred = all_pred_data_df[all_prediction==1]
+        self.negative_pred = all_pred_data_df[all_prediction==0]
+        self.positive_dict = self.positive_pred.T.to_dict()
+        self.negative_dict = self.negative_pred.T.to_dict()
 
 
     def generate_counterfactuals(self, sample, total_CFs, desired_class, verbose):
-      candidate_factuals = sample.T.to_dict()
+      samp = np.hstack([sample[self.numvars].values,self.model.steps[0][1].transform(sample)[:, len(self.numvars):]])
+      sample_kurz = pd.DataFrame(samp,columns=self.dataset_obj.getInputAttributeNames('kurz'))
+      sample_kurz.index = sample.index
+      candidate_factuals = sample_kurz.T.to_dict()
       if desired_class == 0:
-        observable_data = self.negative_pred.T.to_dict()
+        observable_data = self.negative_dict
       else:
-        observable_data = self.positive_pred.T.to_dict()
+        observable_data = self.positive_dict
       for factual_sample_index, factual_sample in candidate_factuals.items():
-        factual_sample['y'] = bool(self.model.predict(sample[factual_sample_index]))
+        factual_sample['y'] = bool(self.model.predict(sample))
         for attr_name_kurz in self.dataset_obj.getInputAttributeNames('kurz'):
           attr_obj = self.dataset_obj.attributes_kurz[attr_name_kurz]
           lower_bound = attr_obj.lower_bound
@@ -313,7 +326,7 @@ class MACE:
               'upper_bound': Int(int(upper_bound))
             }
       all_counterfactuals, closest_counterfactual_sample, closest_interventional_sample = self.findClosestCounterfactualSample(
-        self.model_trained,
+        self.model,
         model_symbols,
         self.dataset_obj,
         factual_sample,
