@@ -1,4 +1,4 @@
-import graphviz
+# import graphviz
 import numpy as np
 from sklearn.tree import _tree, export_graphviz
 from pysmt.shortcuts import *

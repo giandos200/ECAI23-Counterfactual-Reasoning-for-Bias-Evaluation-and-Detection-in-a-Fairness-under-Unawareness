@@ -15,6 +15,8 @@ from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, recall_scor
 from dice_ml import Data, Model, Dice
 
 from tqdm import tqdm
+import warnings
+warnings.filterwarnings("ignore")
 
 class GenerateCF(ABC):
     def __init__(self, config):
@@ -43,12 +45,23 @@ class GenerateCF(ABC):
             from xgboost import XGBClassifier
             self.model = XGBClassifier(**params)
 
+        elif model == 'MLP':
+            from sklearn.neural_network import MLPClassifier
+            self.model = MLPClassifier(**params)
+
+        elif model == 'DT':
+            from sklearn.tree import DecisionTreeClassifier
+            self.model = DecisionTreeClassifier(**params)
+
+        elif model == 'RF':
+            from sklearn.ensemble import RandomForestClassifier
+            self.model = RandomForestClassifier(**params)
+
         #SVM
         elif model == 'SVM':
             from sklearn.svm import SVC
             self.model = SVC(**params)
 
-        #NaivyBayes
         elif model == 'LGB':
             from lightgbm import LGBMClassifier
             self.model = LGBMClassifier(**params)
@@ -70,50 +83,60 @@ class GenerateCF(ABC):
             print(f'Starting model: {model}!')
             self.pipeline(model)
             self.initDice_MACE()
-            risultati = {}
-            risultati['genetic'] = []
+            CFgenStrategy = [('MACE', self.exp_MACE), ('genetic', self.exp_genetic), ('KDtree', self.exp_KD)]
+            CFgenStrategyDict = {cFtype : expCF for cFtype, expCF in CFgenStrategy}
+            if 'typeCF' not in self.config:
+                iterCFgen = CFgenStrategy
+            else:
+                iterCFgen = [(typeCF, CFgenStrategyDict[typeCF]) for typeCF in self.config['typeCF']]
             # df_genetic = pd.DataFrame(columns=self.df.columns.to_list()+[self.sensitiveFeature])
-            for index in tqdm(range(self.x_test.shape[0])):
-                try:
-                    sample = self.x_test[index:index + 1]
-                    y_real = self.y_test[index:index + 1]
-                    result = self.pipe.predict(sample)
-                    if result[0] == 1:
-                        ds = 0
-                    else:
-                        ds = 1
-                    for cFtype, expCF in [('MACE', self.exp_MACE),('genetic', self.exp_genetic),('KDtree', self.exp_KD)]:
-                        # if expCF == self.exp_random:
+            for cFtype, expCF in iterCFgen:
+                risultati = {}
+                risultati[cFtype] = []
+                for index in tqdm(range(self.x_test.shape[0])):
+                    try:
+                        sample = self.x_test[index:index + 1]
+                        y_real = self.y_test[index:index + 1]
+                        result = self.pipe.predict(sample)
+                        if result[0] == 1:
+                            ds = 0
+                        else:
+                            ds = 1
+                            # if expCF == self.exp_random:
                             # if self.config['data']  =='toy-dataset':
                             #     continue
                             # print('Counterfactuals Random Generation Initialized!')
                             # dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
                             #                                           verbose=True, random_seed=42)
-                        print(f'Counterfactuals {cFtype.capitalize()} Generation Initialized!')
-                        if expCF == self.exp_genetic:
-                            print('Counterfactuals Genetic Generation Initialized!')
-                            dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'],
-                                                                      desired_class=ds, verbose=True,
-                                                                      posthoc_sparsity_algorithm="binary")
-                        elif expCF == self.exp_KD:
-                            dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
-                                                                      verbose=True, posthoc_sparsity_algorithm="binary")
-                        elif expCF == self.exp_MACE:
-                            expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
-                                                                      verbose=True,)
+                            print(f'Counterfactuals {cFtype.capitalize()} Generation Initialized!')
+                            if expCF == self.exp_genetic:
+                                print('Counterfactuals Genetic Generation Initialized!')
+                                dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'],
+                                                                          desired_class=ds, verbose=True,
+                                                                          posthoc_sparsity_algorithm="binary")
+                                CF = dice_exp.cf_examples_list[0].final_cfs_df
+                            elif expCF == self.exp_KD:
+                                dice_exp = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
+                                                                          verbose=True, posthoc_sparsity_algorithm="binary")
+                                CF = dice_exp.cf_examples_list[0].final_cfs_df
+                            elif expCF == self.exp_MACE:
+                                CF = expCF.generate_counterfactuals(sample, total_CFs=self.config['NCF'], desired_class=ds,
+                                                               verbose=True,)
 
-
-                        CF = dice_exp.cf_examples_list[0].final_cfs_df
-
-                        risultati[cFtype].append((sample, y_real, result, ds, CF))
-                        # if cFtype == 'random' and self.config['data']  !='toy-dataset':
-                        #     df_Random = pd.concat([df_Random, CF])
-                        # elif cFtype == 'genetic':
-                        #     df_genetic = pd.concat([df_genetic,CF])
-                except:
-                    continue
-            with open(self.generalPathModel+f'/{self.sensitiveFeature}/Genetic.pickle','wb') as file:
-                pickle.dump(risultati,file)
+                            if expCF != self.exp_KD and expCF != self.exp_MACE:
+                                y_CF = CF[self.outcomeFeature]
+                                CF = CF.drop(columns=self.outcomeFeature)
+                            y_sens = self.pipe.predict(sample)
+                            y_CF_sens = self.pipeSF.predict(CF)
+                            risultati[cFtype].append((sample, y_real, result,  y_sens, y_CF_sens, CF))
+                            # if cFtype == 'random' and self.config['data']  !='toy-dataset':
+                            #     df_Random = pd.concat([df_Random, CF])
+                            # elif cFtype == 'genetic':
+                            #     df_genetic = pd.concat([df_genetic,CF])
+                    except:
+                        continue
+                with open(self.generalPathModel+f'/{self.sensitiveFeature}/{cFtype.capitalize()}.pickle','wb') as file:
+                    pickle.dump(risultati,file)
 
 
     def pipeline(self, model):

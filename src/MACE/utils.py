@@ -5,9 +5,9 @@ from pprint import pprint
 
 def getDistanceFormula(model_symbols, dataset_obj, factual_sample, norm_type, approach_string, norm_threshold):
 
-  if 'mace' in approach_string:
+  if 'mace' in approach_string.lower():
     variable_to_compute_distance_on = 'counterfactual'
-  elif 'mint' in approach_string:
+  elif 'mint' in approach_string.lower():
     variable_to_compute_distance_on = 'interventional'
 
 
@@ -443,12 +443,12 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
       #            by restricing the counterfactual symbols.
       # TODO: perhaps a better way to structure this code is to completely get
       #       rid of interventional symbols when calling genSATExp.py with MACE.
-      if 'mace' in approach_string:
+      if 'mace' in approach_string.lower():
         actionability_mutability_plausibility.append(EqualsOrIff(
           model_symbols['counterfactual'][attr_name_kurz]['symbol'],
           factual_sample[attr_name_kurz]
         ))
-      elif 'mint' in approach_string:
+      elif 'mint' in approach_string.lower():
         actionability_mutability_plausibility.append(EqualsOrIff(
           model_symbols['interventional'][attr_name_kurz]['symbol'],
           factual_sample[attr_name_kurz]
@@ -472,9 +472,9 @@ def getPlausibilityFormula(model_symbols, dataset_obj, factual_sample, approach_
   ##############################################################################
   ## 4. causal consistency
   ##############################################################################
-  if 'mace' in approach_string:
+  if 'mace' in approach_string.lower():
     causal_consistency = TRUE()
-  elif 'mint' in approach_string:
+  elif 'mint' in approach_string.lower():
     causal_consistency = getCausalConsistencyConstraints(model_symbols, dataset_obj, factual_sample)
 
 

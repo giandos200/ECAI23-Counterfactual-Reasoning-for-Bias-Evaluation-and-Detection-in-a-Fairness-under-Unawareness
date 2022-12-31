@@ -1,6 +1,6 @@
 data: crime-race
 seed: 42
-NCF: 1
+NCF: 100
 savedir: Results/Crime/
 modelSF:
   base_score: 0.5

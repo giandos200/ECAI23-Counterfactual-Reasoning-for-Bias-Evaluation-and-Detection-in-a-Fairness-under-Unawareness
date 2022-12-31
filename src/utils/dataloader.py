@@ -86,7 +86,7 @@ def dataLoader(type):
         for i in ['racePctWhite','racepctblack','racePctAsian','racePctHisp']:
             continuous_vars.remove(i)
         #DF.shape == (1994, 102)
-        return df,target, 'race', 'ViolentCrimesPerPop', continuous_vars, categorical_columns
+        return df, target, 'race', 'ViolentCrimesPerPop', continuous_vars, categorical_columns
 
 
 
@@ -106,24 +106,24 @@ def dataLoader(type):
         return df, target, 'gender', 'income', numvars, categorical
 
 
-    # if type.lower() == 'adult-ms-biased':
-    #     df = pd.read_csv(pathAdult, sep='\t')
-    #     numvars = [ 'education-num','capital gain', 'capital loss', 'hours per week', 'Age', 'fnlwgt']
-    #     # df['workclass'].replace([' Private', ' Self-emp-not-inc', ' Self-emp-inc'], ' Private', inplace=True)
-    #     # df['workclass'].replace([' Federal-gov', ' Local-gov', ' State-gov'], ' Public', inplace=True)
-    #     # df['workclass'].replace([' Without-pay'], 'Unemployed', inplace=True)
-    #     # df = df.drop(columns=['Age', 'race', 'relationship', 'fnlwgt', 'education', 'native-country'])
-    #     #Sensitive_Features = ['gender', 'marital-status']
-    #     df.replace(to_replace=[' Divorced', ' Married-AF-spouse', ' Married-civ-spouse',
-    #                            ' Married-spouse-absent', ' Never-married', ' Separated',
-    #                            ' Widowed'], value=['not married','married','married',
-    #                                                'married', 'not married', 'not married',
-    #                                                'not married'],inplace=True)
-    #     df.replace(['married','not married'], [1,0], inplace=True)
-    #     target = df[['income','marital-status']]
-    #     df.drop(columns=['income','marital-status'], inplace=True)
-    #     categorical = df.columns.difference(numvars)
-    #     return df, target, 'marital-status', 'income', numvars, categorical
+    elif type.lower() == 'adult-ms-biased':
+        df = pd.read_csv(pathAdult, sep='\t')
+        numvars = [ 'education-num','capital gain', 'capital loss', 'hours per week', 'Age', 'fnlwgt']
+        # df['workclass'].replace([' Private', ' Self-emp-not-inc', ' Self-emp-inc'], ' Private', inplace=True)
+        # df['workclass'].replace([' Federal-gov', ' Local-gov', ' State-gov'], ' Public', inplace=True)
+        # df['workclass'].replace([' Without-pay'], 'Unemployed', inplace=True)
+        # df = df.drop(columns=['Age', 'race', 'relationship', 'fnlwgt', 'education', 'native-country'])
+        #Sensitive_Features = ['gender', 'marital-status']
+        df.replace(to_replace=[' Divorced', ' Married-AF-spouse', ' Married-civ-spouse',
+                               ' Married-spouse-absent', ' Never-married', ' Separated',
+                               ' Widowed'], value=['not married','married','married',
+                                                   'married', 'not married', 'not married',
+                                                   'not married'],inplace=True)
+        df.replace(['married','not married'], [1,0], inplace=True)
+        target = df[['income','marital-status']]
+        df.drop(columns=['income','marital-status'], inplace=True)
+        categorical = df.columns.difference(numvars)
+        return df, target, 'marital-status', 'income', numvars, categorical
 
     if type.lower() == 'adult-gender':
         df = pd.read_csv(pathAdult, sep='\t')
@@ -140,29 +140,29 @@ def dataLoader(type):
         return df, target, 'gender', 'income', numvars, categorical
 
 
-    # if type.lower() == 'adult-ms':
-    #     df = pd.read_csv(pathAdult, sep='\t')
-    #     numvars = [ 'education-num','capital gain', 'capital loss', 'hours per week']#, 'Age', 'fnlwgt']
-    #     df['workclass'].replace([' Private', ' Self-emp-not-inc', ' Self-emp-inc'], ' Private', inplace=True)
-    #     df['workclass'].replace([' Federal-gov', ' Local-gov', ' State-gov'], ' Public', inplace=True)
-    #     df['workclass'].replace([' Without-pay'], 'Unemployed', inplace=True)
-    #     df = df.drop(columns=['Age', 'race', 'relationship', 'fnlwgt', 'education', 'native-country'])
-    #     #Sensitive_Features = ['gender', 'marital-status']
-    #     df.replace(to_replace=[' Divorced', ' Married-AF-spouse', ' Married-civ-spouse',
-    #                            ' Married-spouse-absent', ' Never-married', ' Separated',
-    #                            ' Widowed'], value=['not married','married','married',
-    #                                                'married', 'not married', 'not married',
-    #                                                'not married'],inplace=True)
-    #     df.replace(['married','not married'], [1,0], inplace=True)
-    #     target = df[['income','marital-status']]
-    #     df.drop(columns=['income','marital-status','gender'], inplace=True)
-    #     categorical = df.columns.difference(numvars)
-    #     return df, target, 'marital-status', 'income', numvars, categorical
+    elif type.lower() == 'adult-ms':
+        df = pd.read_csv(pathAdult, sep='\t')
+        numvars = [ 'education-num','capital gain', 'capital loss', 'hours per week']#, 'Age', 'fnlwgt']
+        df['workclass'].replace([' Private', ' Self-emp-not-inc', ' Self-emp-inc'], ' Private', inplace=True)
+        df['workclass'].replace([' Federal-gov', ' Local-gov', ' State-gov'], ' Public', inplace=True)
+        df['workclass'].replace([' Without-pay'], 'Unemployed', inplace=True)
+        df = df.drop(columns=['Age', 'race', 'relationship', 'fnlwgt', 'education', 'native-country'])
+        #Sensitive_Features = ['gender', 'marital-status']
+        df.replace(to_replace=[' Divorced', ' Married-AF-spouse', ' Married-civ-spouse',
+                               ' Married-spouse-absent', ' Never-married', ' Separated',
+                               ' Widowed'], value=['not married','married','married',
+                                                   'married', 'not married', 'not married',
+                                                   'not married'],inplace=True)
+        df.replace(['married','not married'], [1,0], inplace=True)
+        target = df[['income','marital-status']]
+        df.drop(columns=['income','marital-status','gender'], inplace=True)
+        categorical = df.columns.difference(numvars)
+        return df, target, 'marital-status', 'income', numvars, categorical
 
     if type.lower() == 'german-gender':
         df = pd.read_csv(pathGerman, sep='\t')
         numvars = ['creditamount', 'duration', 'installmentrate', 'residencesince', 'existingcredits', 'peopleliable']
-        Sensitive_Features = ['gender', 'foreignworker']
+        Sensitive_Features = ['gender', 'foreignworker', 'age',]
         target = df[['gender','classification']]
         target.replace(['M','F'], [1, 0], inplace=True)
         df = df.drop(columns=Sensitive_Features)
@@ -183,35 +183,66 @@ def dataLoader(type):
     #     categorical = df.columns.difference(numvars)
     #     return df, target, 'foreignworker', 'classification', numvars, categorical
     #
-    # if type.lower() == 'german-age':
-    #     '''
-    #     AIF360 : https://github.com/Trusted-AI/AIF360/blob/master/aif360/datasets/german_dataset.py
-    #     By default, this code converts the 'age' attribute to a binary value
-    #     where privileged is `age > 25` and unprivileged is `age <= 25` as
-    #     proposed by Kamiran and Calders [1]_.
-    #     References:
-    #         .. [1] F. Kamiran and T. Calders, "Classifying without
-    #            discriminating," 2nd International Conference on Computer,
-    #            Control and Communication, 2009.
-    #     '''
-    #     df = pd.read_csv(pathGerman, sep='\t')
-    #     numvars = ['creditamount', 'duration', 'installmentrate', 'residencesince', 'existingcredits', 'peopleliable']
-    #     Sensitive_Features = ['gender', 'foreignworker', 'age', 'statussex']
-    #     df['age'] = df['age'].apply(lambda x: np.int(x >= 26))
-    #     target = df[['age', 'classification']]
-    #     # target.replace(['no', 'yes'], [1, 0], inplace=True)
-    #     df = df.drop(columns=Sensitive_Features)
-    #     # Split data into train and test
-    #     df = df.drop("classification", axis=1)
-    #     categorical = df.columns.difference(numvars)
-    #     return df, target, 'age', 'classification', numvars, categorical
-        # df = pd.read_csv(pathGerman, sep='\t')
-        # numvars = ['creditamount', 'duration', 'installmentrate', 'residencesince', 'existingcredits', 'peopleliable']
-        # Sensitive_Features = ['gender', 'foreignworker']
-        # target = df[['foreignworker','classification']]
+    elif type.lower() == 'german-age':
+        '''
+                AIF360 : https://github.com/Trusted-AI/AIF360/blob/master/aif360/datasets/german_dataset.py
+                By default, this code converts the 'age' attribute to a binary value
+                where privileged is `age > 25` and unprivileged is `age <= 25` as
+                proposed by Kamiran and Calders [1]_.
+                References:
+                    .. [1] F. Kamiran and T. Calders, "Classifying without
+                       discriminating," 2nd International Conference on Computer,
+                       Control and Communication, 2009.
+                '''
+        df = pd.read_csv(pathGerman, sep='\t')
+        numvars = ['creditamount', 'duration', 'installmentrate', 'residencesince', 'existingcredits', 'peopleliable']
+        Sensitive_Features = ['gender', 'foreignworker', 'age', 'statussex']
+        df['age'] = df['age'].apply(lambda x: np.int(x >= 26))
+        target = df[['age','classification']]
         # target.replace(['no', 'yes'], [1, 0], inplace=True)
-        # df = df.drop(columns=Sensitive_Features)
-        # # Split data into train and test
-        # df = df.drop("classification", axis=1)
-        # categorical = df.columns.difference(numvars)
-        # return df, target, 'foreignworker', 'classification', numvars, categorical
+        df = df.drop(columns=Sensitive_Features)
+        # Split data into train and test
+        df = df.drop("classification", axis=1)
+        categorical = df.columns.difference(numvars)
+        return df, target, 'age', 'classification', numvars, categorical
+
+    elif type.lower() == 'toy-dataset':
+        # Load toy test
+        n_samples = 200 * 2
+        n_samples_low = 20 * 2
+        n_dimensions = 10
+        X, y, sensible_feature, target = generate_toy_data(n_samples=n_samples,
+                                                           n_samples_low=n_samples_low,
+                                                           n_dimensions=n_dimensions)
+        return X, y, sensible_feature, target, [str(i) for i in range(X.shape[1])], []
+
+def generate_toy_data(n_samples, n_samples_low, n_dimensions):
+    np.random.seed(42)
+    varA = 0.8
+    aveApos = [-1.0] * n_dimensions
+    aveAneg = [1.0] * n_dimensions
+    varB = 0.5
+    aveBpos = [0.5] * int(n_dimensions / 2) + [-0.5] * int(n_dimensions / 2 + n_dimensions % 2)
+    aveBneg = [0.5] * n_dimensions
+
+    X = np.random.multivariate_normal(aveApos, np.diag([varA] * n_dimensions), n_samples)
+    X = np.vstack([X, np.random.multivariate_normal(aveAneg, np.diag([varA] * n_dimensions), n_samples)])
+    X = np.vstack([X, np.random.multivariate_normal(aveBpos, np.diag([varB] * n_dimensions), n_samples_low)])
+    X = np.vstack([X, np.random.multivariate_normal(aveBneg, np.diag([varB] * n_dimensions), n_samples)])
+    sensible_feature = [1] * (n_samples * 2) + [-1] * (n_samples + n_samples_low)
+    #sensible_feature = np.array(sensible_feature)
+    #sensible_feature.shape = (len(sensible_feature), 1)
+    #X = np.hstack([X, sensible_feature])
+    y = [1] * n_samples + [-1] * n_samples + [1] * n_samples_low + [-1] * n_samples
+    y = np.array(list(zip(y,sensible_feature)))
+    idx_A = list(range(0, n_samples * 2))
+    idx_B = list(range(n_samples * 2, n_samples * 3 + n_samples_low))
+    col = [str(i) for i in range(X.shape[1])]
+    X = pd.DataFrame(X, columns=col)
+    y = pd.DataFrame(y, columns=['target','SF'])
+    y.replace(-1,0,inplace=True)
+
+    # print('(y, sensible_feature):')
+    # for el in zip(y, sensible_feature):
+    #     print(el)
+    return X, y, 'SF','target'

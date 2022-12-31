@@ -42,7 +42,8 @@ class Dataset(object):
       unique_values = np.unique(data_frame_long[attr_name].to_numpy())
       # all non-numerical-real values should be integer or {0,1}
       for value in unique_values:
-        assert value == np.floor(value)
+        pass
+        #assert value == np.floor(value)
       if is_one_hot and attributes_long[attr_name].attr_type != 'numeric-int': # binary, sub-categorical, sub-ordinal
         try:
           assert \

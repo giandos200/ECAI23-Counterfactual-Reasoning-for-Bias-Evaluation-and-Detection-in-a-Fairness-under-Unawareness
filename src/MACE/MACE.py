@@ -1,13 +1,17 @@
 import pandas as pd
 import numpy as np
 import copy
-import src.MACE.normalizedDistance
+
+from sklearn.model_selection import train_test_split
+
+import src.MACE.normalizedDistance as normalizedDistance
 from src.MACE.modelConversion import *
 from src.MACE.utils import *
 from pysmt.shortcuts import *
 from pysmt.typing import *
 
 from src.MACE.loadData import Dataset
+from tqdm import tqdm
 
 VALID_ATTRIBUTE_DATA_TYPES = { \
   'numeric-int', \
@@ -94,10 +98,12 @@ def getOneHotEquivalent(data_frame_non_hot, attributes_non_hot):
       new_col_names_kurz = [f'{old_attr_name_kurz}_ord_{i}' for i in range(num_unique_values)]
       print(f'Replacing column {col_name} with {{{", ".join(new_col_names_long)}}}')
       tmp = np.array(list(map(setThermoValue, list(data_frame[col_name].astype(int).values))))
-      data_frame_dummies = pd.DataFrame(data=tmp, columns=new_col_names_long)
+      # data_frame_dummies = pd.DataFrame(data=tmp, columns=new_col_names_long)
 
     # Update data_frame
-    data_frame = pd.concat([data_frame.drop(columns = old_col_name_long), data_frame_dummies], axis=1)
+    data_frame.drop(columns=old_col_name_long,inplace=True)
+    # data_frame = pd.concat([data_frame.drop(columns = old_col_name_long), data_frame_dummies], axis=1)
+    data_frame = pd.DataFrame(np.hstack([data_frame.values, tmp]),columns = data_frame.columns.to_list()+new_col_names_long)
 
     # Update attributes
     del attributes[old_col_name_long]
@@ -205,12 +211,27 @@ class MACE:
         self.approach_string = 'MACE'
         self.norm_type = norm_type
         self.SEED = random_seed
+        self.model = model
+        if isinstance(self.model.steps[1][1], LogisticRegression):
+          if isinstance(self.model.steps[1][1].intercept_,float):
+            self.model.steps[1][1].intercept_ = np.array([self.model.steps[1][1].intercept_])
         dataset = data.copy()
         self.Cat_Map = {}
-        l = numvars.copy()
-        l.extend(catvars.copy())
-        dataset = dataset[l]
+        self.l = numvars.copy()
+        self.l.extend(catvars.copy())
+        dataset = dataset[self.l]
         dataset = pd.concat([outcome, dataset],1)
+        numericTransform = self.model.steps[0][1].named_transformers_['num']
+        dataset[numericTransform.feature_names_in_] = numericTransform.transform(dataset[numericTransform.feature_names_in_])
+        # lenNumvars = self.model.steps[0][1].named_transformers_['num'].feature_names_in_.shape[0]
+        # vectorized_sample[:lenNumvars] = numericTransform.transform(vectorized_sample[:lenNumvars].reshape(1, -1))
+        for col in self.catvars:
+          if dataset[col].nunique() == xtrain[col].nunique():
+            continue
+          else:
+            HundleUknown = set(dataset[col].unique().tolist()).difference(xtrain[col].unique())
+            for hU in HundleUknown:
+              dataset = dataset[~dataset[col]==hU]
         # [st for st in model.steps[0][1].get_feature_names_out().tolist()]
         for c in catvars:
           self.Cat_Map[c] = {}
@@ -218,11 +239,13 @@ class MACE:
           sortUnique.sort()
           for n,val in enumerate(sortUnique):
             self.Cat_Map[c][val] = n+1
-            dataset.replace(val,n+1,inplace=True)
+            dataset[c].replace(val,n+1,inplace=True)
         if len(catvars) >0 :
             self.one_hot = True
+        else:
+          self.one_hot = False
 
-        input_cols, output_col = l, outcome.name
+        input_cols, output_col = self.l, outcome.name
         attributes_non_hot = {}
         attributes_non_hot[output_col] = DatasetAttribute(
           attr_name_long=output_col,
@@ -237,7 +260,11 @@ class MACE:
           upper_bound=dataset[output_col].max())
         for col_idx, col_name in enumerate(input_cols):
           if col_name in numvars:
-            attr_type = 'numeric-real'
+            # attr_type = 'numeric-real'
+            if data[col_name].dtype == int:
+              attr_type = 'numeric-int'
+            else:
+              attr_type = 'numeric-real'
             actionability = 'any'
             mutability = True
           elif col_name in catvars:
@@ -263,10 +290,10 @@ class MACE:
           data_frame, attributes = dataset, attributes_non_hot
 
         assert model.steps[0][1].get_feature_names_out().tolist().__len__() == data_frame.columns.to_list().__len__()-1
-        assert (model.steps[0][1].transform(data)[:,len(numvars):] ==  data_frame.values[:,len(numvars)+1:]).sum() ==\
-               data_frame.shape[0]*data_frame.values[:, len(numvars)+1:].shape[1]
+        if self.catvars.__len__()>0:
+          assert np.sum(model.steps[0][1].transform(data)[:,len(numvars):] ==  data_frame.values[:,len(numvars)+1:]) ==\
+               data_frame.shape[0]*data_frame.values[:, len(numvars)+1:].shape[1], 'columnTransform are not equal'
         self.dataset_obj = Dataset(data_frame, attributes, is_one_hot=self.one_hot, dataset_name=None)
-        self.model = model
         all_prediction = model.predict(data)
         all_pred_data_df = self.dataset_obj.data_frame_kurz
         self.standard_deviation = list(all_pred_data_df.std())[1:]
@@ -282,7 +309,8 @@ class MACE:
 
 
     def generate_counterfactuals(self, sample, total_CFs, desired_class, verbose):
-      samp = np.hstack([sample[self.numvars].values,self.model.steps[0][1].transform(sample)[:, len(self.numvars):]])
+      # samp = np.hstack([sample[self.numvars].values,self.model.steps[0][1].transform(sample)[:, len(self.numvars):]])
+      samp = self.model.steps[0][1].transform(sample)
       sample_kurz = pd.DataFrame(samp,columns=self.dataset_obj.getInputAttributeNames('kurz'))
       sample_kurz.index = sample.index
       candidate_factuals = sample_kurz.T.to_dict()
@@ -292,15 +320,15 @@ class MACE:
         observable_data = self.positive_dict
       for factual_sample_index, factual_sample in candidate_factuals.items():
         factual_sample['y'] = bool(self.model.predict(sample))
+        model_symbols = {
+          'counterfactual': {},
+          'interventional': {},
+          'output': {'y': {'symbol': Symbol('y', BOOL)}}
+        }
         for attr_name_kurz in self.dataset_obj.getInputAttributeNames('kurz'):
           attr_obj = self.dataset_obj.attributes_kurz[attr_name_kurz]
           lower_bound = attr_obj.lower_bound
           upper_bound = attr_obj.upper_bound
-          model_symbols = {
-            'counterfactual': {},
-            'interventional': {},
-            'output': {'y': {'symbol': Symbol('y', BOOL)}}
-          }
           if attr_name_kurz not in self.dataset_obj.getInputAttributeNames('kurz'):
             continue  # do not overwrite the output
           if attr_obj.attr_type == 'numeric-real':
@@ -332,12 +360,29 @@ class MACE:
         factual_sample,
         self.norm_type,
         self.approach_string,
-        self.epsilon
+        self.epsilon,
+        total_CFs
       )
+
+      rows = [tuple(np.array([c_x['counterfactual_sample'][attr_name_kurz] for attr_name_kurz in
+                              self.dataset_obj.getInputAttributeNames('kurz')])) for c_x in all_counterfactuals if c_x['counterfactual_distance'] != np.infty]
+      CF = np.unique(rows, axis=0)
+      #totalCF np.zeros((CF.shape[0], len(self.l)))
+      numCF = self.model.steps[0][1].transformers_[0][1].inverse_transform(CF[:,:len(self.numvars)])
+      if len(self.catvars)>0:
+        catCF = self.model.steps[0][1].transformers_[1][1].inverse_transform(CF[:,len(self.numvars):])
+        CF = np.hstack([numCF,catCF])
+        CF = pd.DataFrame(CF, columns=self.l)
+        return CF[sample.columns]
+      else:
+        CF = pd.DataFrame(CF, columns=self.l)
+        return CF[sample.columns]
+      # x = 5
+
 
     @staticmethod
     def findClosestCounterfactualSample(model_trained, model_symbols, dataset_obj, factual_sample, norm_type,
-                                        approach_string, epsilon):
+                                        approach_string, epsilon, N_CF):
 
       def getCenterNormThresholdInRange(lower_bound, upper_bound):
         return (lower_bound + upper_bound) / 2
@@ -346,8 +391,11 @@ class MACE:
         vectorized_sample = []
         for attr_name_kurz in dataset_obj.getInputAttributeNames('kurz'):
           vectorized_sample.append(dict_sample[attr_name_kurz])
-
-        sklearn_prediction = int(model_trained.predict([vectorized_sample])[0])
+        vectorized_sample = np.array(vectorized_sample)
+        #numericTransform = model_trained.steps[0][1].named_transformers_['num']
+        #lenNumvars = model_trained.steps[0][1].named_transformers_['num'].feature_names_in_.shape[0]
+        #vectorized_sample[:lenNumvars] = numericTransform.transform(vectorized_sample[:lenNumvars].reshape(1, -1))
+        sklearn_prediction = int(model_trained.steps[1][1].predict(vectorized_sample.reshape(1,-1))[0])
         pysmt_prediction = int(dict_sample['y'])
         factual_prediction = int(factual_sample['y'])
 
@@ -355,7 +403,7 @@ class MACE:
         #            ends up super close to (if not on) the decision boundary; here
         #            the label is underfined which causes inconsistency errors
         #            between pysmt and sklearn. We skip the assert at such points.
-        class_predict_proba = model_trained.predict_proba([vectorized_sample])[0]
+        class_predict_proba = model_trained.steps[1][1].predict_proba(vectorized_sample.reshape(1,-1))[0]
         if np.abs(class_predict_proba[0] - class_predict_proba[1]) < 1e-10:
           return
 
@@ -371,7 +419,7 @@ class MACE:
 
       # Get and merge all constraints
       print('Constructing initial formulas: model, counterfactual, distance, plausibility, diversity\t\t', end='')
-      model_formula = getModelFormula(model_symbols, model_trained)
+      model_formula = getModelFormula(model_symbols, model_trained.steps[1][1])
       counterfactual_formula = getCounterfactualFormula(model_symbols, factual_pysmt_sample)
       plausibility_formula = getPlausibilityFormula(model_symbols, dataset_obj, factual_pysmt_sample, approach_string)
       distance_formula = getDistanceFormula(model_symbols, dataset_obj, factual_pysmt_sample, norm_type,
@@ -379,8 +427,8 @@ class MACE:
       diversity_formula = TRUE()  # simply initialize and modify later as new counterfactuals come in
       print('done.')
 
-      iters = 1
-      max_iters = 100
+      #iters = 1
+      max_iters = N_CF
       counterfactuals = []  # list of tuples (samples, distances)
       # In case no counterfactuals are found (this could happen for a variety of
       # reasons, perhaps due to non-plausibility), return a template counterfactual
@@ -393,13 +441,36 @@ class MACE:
         'norm_type': norm_type})
 
       print('Solving (not searching) for closest counterfactual using various distance thresholds...')
-
-      while iters < max_iters and norm_upper_bound - norm_lower_bound >= epsilon:
-        print(f"\nIteration step: {iters}")
-        print(
-          f'\tIteration #{iters:03d}: testing norm threshold {curr_norm_threshold:.6f} in range [{norm_lower_bound:.6f}, {norm_upper_bound:.6f}]...\t',
-          end='')
-        iters = iters + 1
+      c = 0
+      pbar = tqdm(range(max_iters), colour='CYAN')
+      for iters in pbar: #while iters < max_iters and norm_upper_bound - norm_lower_bound >= epsilon:
+        #print(f"\nIteration step: {iters}")
+        if iters >10:
+          if 'rows' in locals():
+            t_CF = tuple(np.array([counterfactuals[-1]['counterfactual_sample'][attr_name_kurz] for attr_name_kurz in
+                                   dataset_obj.getInputAttributeNames('kurz')]))
+            if t_CF in rows:
+              c+=1
+              if c==10:
+                pbar.set_postfix_str(s='failing in finding diverse Counterfactuals')
+                break
+            else:
+              rows.append(t_CF)
+          else:
+            rows = [tuple(np.array([c_x['counterfactual_sample'][attr_name_kurz] for attr_name_kurz in
+                                    dataset_obj.getInputAttributeNames('kurz')])) for c_x in counterfactuals if
+                    c_x['counterfactual_distance'] != np.infty]
+            rows = np.unique(rows, axis=0).tolist()
+            rows = [tuple(r) for r in rows]
+        if pbar.format_dict['elapsed'] > 100 and iters>10:
+          pbar.set_postfix_str(s=f'Time exceded and N_iters: {iters}')
+          break
+        elif pbar.format_dict['elapsed'] > 200:
+          pbar.set_postfix_str(s='Time exceded')
+          break
+        pbar.set_postfix_str(s=
+                             f'testing norm threshold {curr_norm_threshold:.6f} in range [{norm_lower_bound:.6f}, {norm_upper_bound:.6f}]...',refresh=True)
+        #iters = iters + 1
 
         formula = And(  # works for both initial iteration and all subsequent iterations
           model_formula,
@@ -417,7 +488,7 @@ class MACE:
 
           if solved:  # joint formula is satisfiable
             model = solver.get_model()
-            print('solution exists & found.')
+            pbar.set_postfix_str(s='solution exists & found.',refresh=True)
             counterfactual_pysmt_sample = {}
             interventional_pysmt_sample = {}
             for (symbol_key, symbol_value) in model:
@@ -477,13 +548,15 @@ class MACE:
             #            the binary search to solve this.
             norm_lower_bound = norm_lower_bound
             # norm_upper_bound = curr_norm_threshold
-            if 'mace' in approach_string:
+            if 'mace' in approach_string.lower():
               norm_upper_bound = float(counterfactual_distance + epsilon / 100)  # not float64
-            elif 'mint' in approach_string:
+            elif 'mint' in approach_string.lower():
               norm_upper_bound = float(interventional_distance + epsilon / 100)  # not float64
             curr_norm_threshold = getCenterNormThresholdInRange(norm_lower_bound, norm_upper_bound)
             distance_formula = getDistanceFormula(model_symbols, dataset_obj, factual_pysmt_sample, norm_type,
                                                   approach_string, curr_norm_threshold)
+            # if norm_upper_bound - norm_lower_bound <= epsilon:
+            #   break
 
           else:  # no solution found in the assigned norm range --> update range and try again
             with Solver(name=solver_name) as neg_solver:
@@ -491,19 +564,22 @@ class MACE:
               neg_solver.add_assertion(neg_formula)
               neg_solved = neg_solver.solve()
               if neg_solved:
-                print('no solution exists.')
+                pbar.set_postfix_str(s='no solution exists.',refresh=True)
                 norm_lower_bound = curr_norm_threshold
                 norm_upper_bound = norm_upper_bound
                 curr_norm_threshold = getCenterNormThresholdInRange(norm_lower_bound, norm_upper_bound)
                 distance_formula = getDistanceFormula(model_symbols, dataset_obj, factual_pysmt_sample, norm_type,
                                                       approach_string, curr_norm_threshold)
+                #if norm_upper_bound - norm_lower_bound <= epsilon:
+                #  break
               else:
-                print('no solution found (SMT issue).')
+                pbar.set_postfix_str(s='no solution found (SMT issue).',refresh=True)
                 quit()
                 break
 
       # IMPORTANT: there may be many more at this same distance! OR NONE! (what?? 2020.02.19)
-      closest_counterfactual_sample = sorted(counterfactuals, key=lambda x: x['counterfactual_distance'])[0]
+      counterfactuals = sorted(counterfactuals, key=lambda x: x['counterfactual_distance'])
+      closest_counterfactual_sample = counterfactuals[0]
       closest_interventional_sample = sorted(counterfactuals, key=lambda x: x['interventional_distance'])[0]
 
       return counterfactuals, closest_counterfactual_sample, closest_interventional_sample

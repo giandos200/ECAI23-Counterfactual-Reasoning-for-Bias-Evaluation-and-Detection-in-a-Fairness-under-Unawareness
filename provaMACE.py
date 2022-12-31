@@ -5,7 +5,7 @@ from src.model.CFgeneration import GenerateCF
 
 if __name__ == '__main__':
     print(sys.argv)
-    pathConfig = 'config/Adult/config-adult-gender.yml'
+    pathConfig = 'config/Crime/config-crime-race-MACE.yml'
     with open(f"{pathConfig}", 'r') as stream:
         try:
             file = yaml.safe_load(stream)

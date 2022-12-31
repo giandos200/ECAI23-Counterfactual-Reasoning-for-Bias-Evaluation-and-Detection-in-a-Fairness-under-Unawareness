@@ -1,6 +1,6 @@
 data: adult-gender-biased
 seed: 42
-NCF: 1
+NCF: 100
 savedir: Results/Adult/
 modelSF:
   base_score: 0.5

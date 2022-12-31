@@ -1,6 +1,6 @@
 data: german-gender
 seed: 42
-NCF: 1
+NCF: 100
 savedir: Results/German/
 modelSF:
   base_score: 0.5

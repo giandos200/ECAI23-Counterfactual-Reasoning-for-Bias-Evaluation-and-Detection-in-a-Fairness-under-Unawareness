@@ -1,0 +1,56 @@
+data: toy-dataset
+seed: 42
+NCF: 100
+typeCF: ['MACE']
+savedir: Results/Toy/
+modelSF:
+  base_score: 0.5
+  booster: 'gbtree'
+  callbacks: None
+  colsample_bylevel: 1
+  colsample_bynode: 1
+  colsample_bytree: 0.6
+  early_stopping_rounds: None
+  enable_categorical: False
+  gamma: 0.01
+  gpu_id: -1
+  grow_policy: 'depthwise'
+  importance_type: None
+  interaction_constraints: ''
+  learning_rate: 0.1
+  max_bin: 256
+  max_cat_to_onehot: 4
+  max_delta_step: 0
+  max_depth: 5
+  max_leaves: 0
+  min_child_weight: 1
+  monotone_constraints: '()'
+  n_estimators: 100
+  n_jobs: 0
+  num_parallel_tree: 1
+  predictor: 'auto'
+  random_state: 42
+  reg_alpha: 0.01
+  reg_lambda: 1
+models:
+  LR:
+    C: 0.03359818286283781
+    class_weight: 'balanced'
+    solver: 'sag'
+    warm_start: True
+    random_state: 42
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 4
+    max_features: 'sqrt'
+    min_samples_leaf: 4
+    random_state: 42
+  RF:
+    bootstrap: False
+    max_depth: 20
+    max_features: 'auto'
+    min_samples_split: 5
+    n_estimators: 50
+    random_state: 42
+#  MLP:
