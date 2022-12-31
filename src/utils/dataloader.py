@@ -71,7 +71,7 @@ def dataLoader(type):
             if features[col].isnull().sum() > 0:
                 features.drop(col, axis=1, inplace=True)
             else:
-                if features[col].dtype == np.object:
+                if features[col].dtype == object:
                     categorical_columns += [col]
                 else:
                     continuous_vars += [col]
@@ -197,7 +197,7 @@ def dataLoader(type):
         df = pd.read_csv(pathGerman, sep='\t')
         numvars = ['creditamount', 'duration', 'installmentrate', 'residencesince', 'existingcredits', 'peopleliable']
         Sensitive_Features = ['gender', 'foreignworker', 'age', 'statussex']
-        df['age'] = df['age'].apply(lambda x: np.int(x >= 26))
+        df['age'] = df['age'].apply(lambda x: int(x >= 26))
         target = df[['age','classification']]
         # target.replace(['no', 'yes'], [1, 0], inplace=True)
         df = df.drop(columns=Sensitive_Features)
