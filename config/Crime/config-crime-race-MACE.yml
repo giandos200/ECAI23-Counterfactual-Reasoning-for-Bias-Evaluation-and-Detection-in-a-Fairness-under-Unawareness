@@ -54,4 +54,4 @@ models:
     max_features: 'auto'
     n_estimators: 400
     random_state: 42
-  MLP:
+#  MLP:
