@@ -1,6 +1,7 @@
 data: german-gender
 seed: 42
 NCF: 100
+typeCF: ['genetic','KDtree']
 savedir: Results/German/
 modelSF:
   base_score: 0.5
@@ -33,18 +34,31 @@ modelSF:
   use_label_encoder: False
   validate_parameters: 1
 models:
-  AdvDeb:
-    prot_attr: [ 'gender' ]
-    adversary_loss_weight: 0.05
-    num_epochs: 70
-    batch_size: 64
-    classifier_num_hidden_units: 128
-    random_state: 42
   LR:
     C: 0.03359818286283781
     class_weight: 'balanced'
     solver: 'sag'
     warm_start: True
+    random_state: 42
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 9
+    max_features: 'sqrt'
+    min_samples_leaf: 4
+    min_samples_split: 9
+    random_state: 42
+  RF:
+    max_depth: 40
+    max_features: 'auto'
+    min_samples_split: 5
+    n_estimators: 200
+    random_state: 42
+  MLP:
+    activation: 'tanh'
+    early_stopping: True
+    hidden_layer_sizes: (32, 64, 128)
+    max_iter: 120
     random_state: 42
   SVM:
     C: 1
@@ -89,8 +103,21 @@ models:
     tree_method: 'exact'
     use_label_encoder: False
     validate_parameters: 1
+  AdvDeb:
+    prot_attr: [ 'gender' ]
+    adversary_loss_weight: 0.05
+    num_epochs: 70
+    batch_size: 64
+    classifier_num_hidden_units: 128
+    random_state: 42
   LFERM:
     C: 0.01
     kernel: 'linear'
     probability: True
     random_state: 42
+  FairC:
+    sensitive_feature: 'gender'
+    output: 'classification'
+    setting: 'c'
+    c: 0.001
+    seed: 42

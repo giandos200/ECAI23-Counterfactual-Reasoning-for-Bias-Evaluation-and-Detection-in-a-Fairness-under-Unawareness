@@ -1,0 +1,129 @@
+data: adult-ms-biased
+seed: 42
+NCF: 100
+typeCF: ['genetic','KDtree']
+savedir: Results/Adult/
+modelSF:
+  base_score: 0.5
+  booster: 'gbtree'
+  callbacks: None
+  colsample_bylevel: 1
+  colsample_bynode: 1
+  colsample_bytree: 1
+  early_stopping_rounds: None
+  enable_categorical: False
+  eval_metric: 'logloss'
+  gamma: 0.1
+  gpu_id: -1
+  grow_policy: 'depthwise'
+  importance_type: None
+  interaction_constraints: ''
+  learning_rate: 0.1
+  max_bin: 256
+  max_cat_to_onehot: 4
+  max_delta_step: 0
+  max_depth: 3
+  max_leaves: 0
+  min_child_weight: 1
+  monotone_constraints: '()'
+  n_estimators: 100
+  n_jobs: 1
+  num_parallel_tree: 1
+  predictor: 'auto'
+  random_state: 42
+  reg_alpha: 0.1
+  reg_lambda: 1
+models:
+  LR:
+    C: 0.23357214690901212
+    class_weight: 'balanced'
+    fit_intercept: False
+    warm_start: True
+    random_state: 42
+    n_jobs: 1
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 9
+    max_features: 'sqrt'
+    min_samples_split: 3
+    random_state: 42
+  RF:
+    max_depth: 80
+    n_estimators: 200
+    max_features: 'auto'
+    min_samples_leaf: 2
+    min_samples_split: 10
+    random_state: 42
+  MLP:
+    alpha: 0.05
+    early_stopping: True
+    hidden_layer_sizes: (32, 64, 128)
+    max_iter: 120
+    random_state: 42
+  SVM:
+    C: 10
+    class_weight: 'balanced'
+    gamma: 'auto'
+    probability: True
+    random_state: 42
+  LGB:
+    colsample_bytree: 0.6
+    device: 'cpu'
+    learning_rate: 0.05
+    max_depth: 8
+    metric: 'binary_logloss'
+    n_estimators: 300
+    objective: 'binary'
+    reg_alpha: 0.1
+    reg_lambda: 0.03
+    n_jobs: 1
+    seed: 42
+  XGB:
+    base_score: 0.5
+    booster: 'gbtree'
+    callbacks: None
+    colsample_bylevel: 1
+    colsample_bynode: 1
+    colsample_bytree: 0.6
+    early_stopping_rounds: None
+    enable_categorical: False
+    eval_metric: 'logloss'
+    gamma: 0.1
+    gpu_id: -1
+    grow_policy: 'depthwise'
+    importance_type: None
+    interaction_constraints: ''
+    learning_rate: 0.1
+    max_bin: 256
+    max_cat_to_onehot: 4
+    max_delta_step: 0
+    max_depth: 5
+    max_leaves: 0
+    min_child_weight: 1
+    monotone_constraints: '()'
+    n_estimators: 300
+    n_jobs: 1
+    num_parallel_tree: 1
+    predictor: 'auto'
+    random_state: 42
+    reg_alpha: 0.01
+    reg_lambda: 1
+  AdvDeb:
+    prot_attr: ['gender']
+    adversary_loss_weight: 0.1
+    num_epochs: 100
+    batch_size: 512
+    classifier_num_hidden_units: 64
+    random_state: 42
+  LFERM:
+    C: 0.01
+    kernel: 'linear'
+    probability: True
+    random_state: 42
+  FairC:
+    sensitive_feature: 'marital-status'
+    output: 'income'
+    setting: 'c'
+    c: 0.001
+    seed: 42

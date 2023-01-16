@@ -1,6 +1,7 @@
 data: crime-race
 seed: 42
 NCF: 100
+typeCF: ['genetic', 'KDtree']
 savedir: Results/Crime/
 modelSF:
   base_score: 0.5
@@ -41,6 +42,24 @@ models:
     solver: 'liblinear'
     random_state: 42
     tol: 0.00001
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 5
+    max_features: 'sqrt'
+    min_samples_leaf: 4
+    random_state: 42
+  RF:
+    max_depth: 10
+    max_features: 'auto'
+    n_estimators: 400
+    random_state: 42
+  MLP:
+    early_stopping: True
+    hidden_layer_sizes: (64,)
+    learning_rate: 'adaptive'
+    max_iter: 120
+    random_state: 42
   SVM:
     C: 0.1
     kernel: 'linear'
@@ -101,3 +120,9 @@ models:
     kernel: 'linear'
     probability: True
     random_state: 42
+  FairC:
+    sensitive_feature: 'race'
+    output: 'ViolentCrimesPerPop'
+    setting: 'c'
+    c: 0.001
+    seed: 42

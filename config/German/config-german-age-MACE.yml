@@ -53,3 +53,8 @@ models:
     n_estimators: 200
     random_state: 42
   MLP:
+    activation: 'tanh'
+    early_stopping: True
+    hidden_layer_sizes: (32, 64, 128)
+    max_iter: 120
+    random_state: 42

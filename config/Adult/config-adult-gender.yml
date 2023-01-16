@@ -1,8 +1,9 @@
 data: adult-gender-biased
 seed: 42
 NCF: 100
+typeCF: ['genetic','KDtree']
 savedir: Results/Adult/
-modelSF:
+modelSF: #XGB
   base_score: 0.5
   booster: 'gbtree'
   callbacks: None
@@ -40,6 +41,26 @@ models:
     warm_start: True
     random_state: 42
     n_jobs: 1
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 9
+    max_features: 'sqrt'
+    min_samples_split: 3
+    random_state: 42
+  RF:
+    max_depth: 80
+    n_estimators: 200
+    max_features: 'auto'
+    min_samples_leaf: 2
+    min_samples_split: 10
+    random_state: 42
+  MLP:
+    alpha: 0.05
+    early_stopping: True
+    hidden_layer_sizes: (32, 64, 128)
+    max_iter: 120
+    random_state: 42
   SVM:
     C: 10
     class_weight: 'balanced'
@@ -100,3 +121,9 @@ models:
     kernel: 'linear'
     probability: True
     random_state: 42
+  FairC:
+    sensitive_feature: 'gender'
+    output: 'income'
+    setting: 'c'
+    c: 0.001
+    seed: 42

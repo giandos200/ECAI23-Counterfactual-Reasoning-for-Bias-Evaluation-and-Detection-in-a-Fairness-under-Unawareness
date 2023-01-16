@@ -1,6 +1,7 @@
 data: adult-gender
 seed: 42
 NCF: 100
+typeCF: ['genetic','KDtree']
 savedir: Results/Adult-debiased/
 modelSF:
   base_score: 0.5
@@ -39,6 +40,25 @@ models:
     penalty: 'l1'
     solver: 'liblinear'
     n_jobs: 1
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 9
+    max_features: 'sqrt'
+    min_samples_split: 3
+    random_state: 42
+  RF:
+    max_depth: 20
+    max_features: 'auto'
+    min_samples_leaf: 4
+    min_samples_split: 10
+    random_state: 42
+  MLP:
+    activation: 'tanh'
+    early_stopping: True
+    hidden_layer_sizes: (32, 64, 128)
+    max_iter: 120
+    random_state: 42
   SVM:
     C: 0.1
     class_weight: 'balanced'
@@ -99,3 +119,9 @@ models:
     kernel: 'linear'
     probability: True
     random_state: 42
+  FairC:
+    sensitive_feature: 'gender'
+    output: 'income'
+    setting: 'c'
+    c: 0.001
+    seed: 42

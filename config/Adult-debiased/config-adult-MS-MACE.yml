@@ -34,24 +34,23 @@ modelSF:
   use_label_encoder: False
   validate_parameters: 1
 models:
-#  LR:
-#    C: 1.623776739188721
-#    class_weight: 'balanced'
-#    penalty: 'l1'
-#    solver: 'liblinear'
-#    n_jobs: 1
-#  DT:
-#    ccp_alpha: 0.001
-#    criterion: 'entropy'
-#    max_depth: 9
-#    max_features: 'sqrt'
-#    min_samples_split: 3
-#    random_state: 42
+  LR:
+    C: 1.623776739188721
+    class_weight: 'balanced'
+    penalty: 'l1'
+    solver: 'liblinear'
+    n_jobs: 1
+  DT:
+    ccp_alpha: 0.001
+    criterion: 'entropy'
+    max_depth: 9
+    max_features: 'sqrt'
+    min_samples_split: 3
+    random_state: 42
   RF:
     max_depth: 20
     max_features: 'auto'
     min_samples_leaf: 4
     min_samples_split: 10
     random_state: 42
-#  MLP:
-
+  MLP:

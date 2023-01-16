@@ -55,9 +55,9 @@ models:
     min_samples_leaf: 2
     min_samples_split: 10
     random_state: 42
-  MLP:
+  MLP: # this configuration will not work
     alpha: 0.05
     early_stopping: True
-    hidden_layer_sizes: (10,10)
+    hidden_layer_sizes: (32, 64, 128)
     max_iter: 120
     random_state: 42
