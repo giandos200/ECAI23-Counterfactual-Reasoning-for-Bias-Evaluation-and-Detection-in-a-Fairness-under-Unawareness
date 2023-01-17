@@ -1,13 +1,13 @@
 dice_ml==0.9
-lightgbm==3.3.3
-matplotlib==3.6.2
+lightgbm==3.3.4
+matplotlib==3.6.3
 numpy==1.24.1
 pandas==1.5.2
 pysmt==0.9.5
 PyYAML==6.0
 scikit_learn==1.2.0
-scipy==1.9.3
+scipy==1.10.0
 tabulate==0.9.0
 tensorflow==2.11.0
 tqdm==4.64.1
-xgboost==1.7.2
+xgboost==1.7.3
