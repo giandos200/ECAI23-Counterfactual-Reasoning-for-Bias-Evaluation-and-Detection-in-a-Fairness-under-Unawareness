@@ -1,7 +1,8 @@
 # IJCAI23
 
 
-## Official repository of Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting
+## Official repository of: 
+## "Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting`` - IJCAI 2023
 
 Anonymous Authors
 
@@ -48,6 +49,6 @@ python3 -u mainEvaluate.py {dataset} {SF} {CFstrategy} {SFclf}
 python3 -u mainEvaluate.py Crime race genetic XGB
 ```
 
-The script will save (and show in IDE) Counterfactual Flip metric in Figure 2 but also for other sensitive infotmation, 
-and display in console Table 2, Table 3, and Table 10.
+The script will save (and show in IDE) Counterfactual Flip metric in Figure 2 into folder 'figure/', also for other 
+sensitive information, and display in console Table 2, Table 3, and Table 10.
 
