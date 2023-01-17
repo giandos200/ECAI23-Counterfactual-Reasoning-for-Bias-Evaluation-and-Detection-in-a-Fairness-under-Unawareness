@@ -1,16 +1,11 @@
 # IJCAI23
 
 
-## Official repository of Counterfactual Fair Opportunity (Poster) - The Web Conference 2023 (WWW '23)
+## Official repository of Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting
 
-Authors: Giandomenico Cornacchia*, Vito Walter Anelli, Fedelucio Narducci, and Azzurra Ragone; 
+Anonymous Authors
 
-<p float="left">
-  <img src="figure/3D TSNE XGB male f(x)=0(1).svg" width="200" />
-  <img src="figure/3D TSNE XGB female f(x)=0(1).svg" width="200" />
-  <img src="figure/3D TSNE DEBIASED male f(x)=0(1).svg" width="200" /> 
-  <img src="figure/3D TSNE DEBIASED female f(x)=0(1).svg" width="200" />
-  </p>
+<img src="figure/Figure.svg">
 
 ## Setup Instructions
 
@@ -32,10 +27,10 @@ To train, evaluate models, and generate counterfactual samples for each dataset 
 ```
 or chose one of the config file for a specific dataset, and run:
 ```bash
-python3 -u mainGenerate.py {config/{dataset}/...}.yml
+python3 -u mainGenerate.py {config/{dataset}/config-{dataset}-{sf}}.yml
 ```
 
-Result can be found in the folder Results/{dataset}/{model}/{SF}/Genetic.pickle
+Result can be found in the folder Results/{dataset}/{model}/{SF}/{Genetic/KDtree}.pickle
 
 N.B.: Experiments can take several days for each dataset and model. To speed up inference in the Model_Y and Counterfactual Generator loop for some scikit-learn models (e.g. SVM), the ["skearnex"](https://github.com/intel/scikit-learn-intelex) library from intel was used. The metrics' results may vary slightly from the scikit-learn models.
 
@@ -45,17 +40,14 @@ To evaluate the proposed metric for each dataset, simply run the following comma
 ```bash
 python3 -u mainEvaluate.py
 ```
-
-The script will display Counterfactual Fairness metrics in Table 3.
-
-### Generate toy figures
-
-To generate Figure 1, run the following command:
-
+or chose one of the dataset, relative sensitive feature, CF strategy, and Sensitive Feature classifier to investigate:
 ```bash
-python3 -u T-SNE.py
+#example
+python3 -u mainEvaluate.py {dataset} {SF} {CFstrategy} {SFclf}
+#real
+python3 -u mainEvaluate.py Crime race genetic XGB
 ```
 
-Image are saved in folder ./figures/3D TSNE {model} {unpriv/priv} f(x)=0.svg
+The script will save (and show in IDE) Counterfactual Flip metric in Figure 2 but also for other sensitive infotmation, 
+and display in console Table 2, Table 3, and Table 10.
 
-N.B.: Images can be slightly different, based on seed, python and libraries versions. Neverthless, they are only toys image that will return the same conceptual findings.
