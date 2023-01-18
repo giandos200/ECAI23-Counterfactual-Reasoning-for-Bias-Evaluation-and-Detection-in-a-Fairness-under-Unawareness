@@ -76,6 +76,9 @@ class GenerateCF(ABC):
             self.model = Linear_FERM(SVC(**params),
                                      sensitive_feature=self.sensitiveFeature,
                                      output=self.outcomeFeature)
+        elif model == 'FairC':
+            from src.DebiasingModel.FairClassificationZafar.FairConstraints import FairConstraints
+            self.model = FairConstraints(**params)
 
     def generate(self):
         #train_model
