@@ -43,7 +43,7 @@ python3 -u mainEvaluate.py
 ```
 or chose one of the dataset, relative sensitive feature, CF strategy, and Sensitive Feature classifier to investigate:
 ```bash
-#example
+#template example
 python3 -u mainEvaluate.py {dataset} {SF} {CFstrategy} {SFclf}
 #real
 python3 -u mainEvaluate.py Crime race genetic XGB
@@ -52,3 +52,24 @@ python3 -u mainEvaluate.py Crime race genetic XGB
 The script will save (and show in IDE) Counterfactual Flip metric in Figure 2 into folder 'figure/', also for other 
 sensitive information, and display in console Table 2, Table 3, and Table 10.
 
+### Proxy Features detection
+To detect most important feature for a switch in the sensitive information, just run:
+```bash
+#template example
+python3 -u proxyFeatureDetection.py {dataset} {SF} {clf} {CFstrategy} {SFclf}
+#full Figure 4 (i.e., Figure 5) 
+python3 -u proxyFeatureDetection.py Adult-debiased gender MLP genetic MLP
+```
+For example the second script will save into folder 'figure/' (and show in IDE) the proxy features plot in Figure 4 and 5, as follow.
+
+<img src="figure/proxyFeature_Adult-debiased_gender_genetic_clfMLP_SFclfMLP.svg">
+
+### Counterfactual generation strategy statistics
+To display some statistics of the various generation strategy, just run:
+
+```bash
+#template example
+python3 -u StatisticsCF.py {dataset} {SF} {clf} {CFstrategy}
+#real example
+python3 -u StatisticsCF.py Adult-debiased gender LR MACE
+```

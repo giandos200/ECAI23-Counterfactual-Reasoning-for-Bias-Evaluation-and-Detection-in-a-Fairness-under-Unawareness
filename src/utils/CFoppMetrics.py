@@ -1,5 +1,7 @@
 import pickle
 import numpy as np
+import pandas as pd
+
 from matplotlib import pyplot as plt
 from tabulate import tabulate
 from tqdm import tqdm
@@ -41,7 +43,7 @@ def makePipeline(dataset,SF,modelName):
         steps=[('scaler', StandardScaler())])
 
     categorical_transformer = Pipeline(
-        steps=[('onehot', OneHotEncoder(handle_unknown='ignore'))])
+        steps=[('onehot', OneHotEncoder(handle_unknown='ignore', sparse=False))])
 
     transformations = ColumnTransformer(
         transformers=[
@@ -118,6 +120,73 @@ def CFlips(Results, cfStrategy, SF, SFclf, type_sensitive):
     return CFrangeFlip
 
 
+
+def ProxyFeatureDetection(modelSF, dataset, model, dict,cFtype, SF):
+    datal = loadMap[dataset][SF]
+    df, target, SF, Clf, numvars, categorical = dataLoader(datal)
+    pipelineCLF_Sens = makePipeline(dataset, SF, modelSF)
+
+    ctr = pipelineCLF_Sens['preprocessor']
+    OHEcat = ctr.named_transformers_['cat'].get_feature_names_out().tolist()
+    NewFeature = numvars + OHEcat + ['deltaProb']
+
+    for k, dictR in dict.items():
+        if k != model:
+            continue
+        print(f"Dataset: {dataset}, model: {k}")
+        path = dictR[SF]
+        risultati = get_result_from_pickle(path)
+        # dfCF = pd.DataFrame([],columns=x_test.columns.to_list())
+        # dfCFflipped = pd.DataFrame([], columns=NewFeature)
+        dfCFFlippedlist = []
+        for i in tqdm(risultati[cFtype]['sample_CF']):
+            sample, y_real, result, y_sens, y_CF_sens, CF = i
+            if result in [0,1]:
+                if y_real[SF].item() == 1:
+                    FlipSF = 0
+                else:
+                    FlipSF = 1
+                if y_real[SF].item() == pipelineCLF_Sens.predict(sample):
+                    Prob_x = pipelineCLF_Sens.predict_proba(sample)[:, 1]
+                    n_sample = sample[numvars].values
+                    sample = ctr.transform(sample)
+                    sample[:, :len(numvars)] = n_sample
+                    sample = np.hstack([sample[0], Prob_x])
+                    y_CF_sens = pipelineCLF_Sens.predict(CF)
+                    # nCF = CF[~(y_CF_sens == 1)]
+                    CF = CF[y_CF_sens == FlipSF]
+                    if CF.shape[0] > 0:
+                        Prob_c_x = pipelineCLF_Sens.predict_proba(CF)[:, 1]
+                        num_CF = CF[numvars].values
+                        CF = ctr.transform(CF)
+                        CF[:, :len(numvars)] = num_CF
+                        CF = np.hstack([CF, Prob_c_x.reshape(-1, 1)])
+                        epsilon = CF - sample
+                        epsilon = pd.DataFrame(epsilon, columns=NewFeature)
+                        dfCFFlippedlist.append(epsilon)
+        dfCFflipped = pd.concat(dfCFFlippedlist)
+        PearsonCorr = dfCFflipped.corr()
+        # PearsonCorr.style.background_gradient(cmap='coolwarm').set_precision(3)
+        print(PearsonCorr['deltaProb'].reindex(PearsonCorr['deltaProb'].abs().sort_values(ascending=False).index))
+        bar = PearsonCorr['deltaProb'].reindex(PearsonCorr['deltaProb'].abs().sort_values(ascending=False).index)
+        pos_Cor = (bar.values[1:].reshape(1, bar.shape[0] - 1).flatten() > 0)[::-1]
+        neg_Cor = (bar.values[1:].reshape(1, bar.shape[0] - 1).flatten() < 0)[::-1]
+        rgba_colors = np.zeros((bar.shape[0] - 1, 4))
+        rgba_colors[:,0] = 0.92968
+        rgba_colors[pos_Cor, 2] = 0.10546  # value of blue intensity divided by 256
+        rgba_colors[neg_Cor, 2] = 1
+        # normilzed only for rgba_color_range
+        normalizedBar = bar.abs()[1:].apply(lambda x: (x - 0) / (bar.abs()[1:].max() - 0) * (1 - 0.3) + 0.3)
+        rgba_colors[:, -1] = normalizedBar.values[::-1].reshape(1, bar.shape[0] - 1).flatten()
+        plt.figure(figsize=(9, 11))
+        plt.style.use('seaborn-dark')
+        fig, ax = plt.subplots(figsize=(14, 8))
+        ax.barh(y=bar.axes[0].to_list()[1:][::-1], width=bar.values[1:][::-1], color=rgba_colors)
+        plt.savefig(f'figure/proxyFeature_{dataset}_{SF}_{cFtype}_clf{model}_SFclf{modelSF}.svg', bbox_inches="tight")
+        plt.xlabel(f"$\\rho(\epsilon,\delta)$")
+        plt.axis('on')
+        plt.show()
+        plt.close()
 
 def CFmetrics(Results, dataset, SF, CFmethod, SFclf = None):
     pipelineSFclf = makePipeline(dataset, SF,SFclf)
