@@ -5,7 +5,7 @@ import sys
 
 if __name__ == '__main__':
     pathResult = sys.argv
-    # pathResult.extend(['Adult-debiased', 'gender', 'MLP', 'genetic'])
+    # pathResult.extend(['German', 'gender', 'genetic', 'XGB'])
     if pathResult.__len__()>4:
         dataset = pathResult[1].capitalize()
         SF = pathResult[2]

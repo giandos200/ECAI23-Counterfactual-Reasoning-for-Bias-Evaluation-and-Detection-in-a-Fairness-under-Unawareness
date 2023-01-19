@@ -162,7 +162,7 @@ def dataLoader(type):
     if type.lower() == 'german-gender':
         df = pd.read_csv(pathGerman, sep='\t')
         numvars = ['creditamount', 'duration', 'installmentrate', 'residencesince', 'existingcredits', 'peopleliable']
-        Sensitive_Features = ['gender', 'foreignworker', 'age',]
+        Sensitive_Features = ['gender', 'foreignworker', 'age','statussex']
         target = df[['gender','classification']]
         target.replace(['M','F'], [1, 0], inplace=True)
         df = df.drop(columns=Sensitive_Features)

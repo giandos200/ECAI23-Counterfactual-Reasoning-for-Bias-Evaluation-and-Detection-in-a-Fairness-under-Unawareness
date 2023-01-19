@@ -86,7 +86,9 @@ def CFlips(Results, cfStrategy, SF, SFclf, type_sensitive):
         ySF = 0
     else:
         ySF = 1
-    R = get_result_from_pickle(Results)[cfStrategy]['sample_CF']
+    R = get_result_from_pickle(Results)
+    CFstr = list(R.keys())[0]
+    R = R[CFstr]['sample_CF']
     Results = []
     CFrangeFlip = [0]
     for i in tqdm(R):
