@@ -3,14 +3,14 @@ patch_sklearn(verbose=True)
 from sklearn.base import BaseEstimator, ClassifierMixin
 from typing import Dict
 import numpy as np
-import DebiasedModel.FairClassificationZafar.utils as ut
+import src.DebiasingModel.FairClassificationZafar.utils as ut
 # import utils as ut
 import random
 import time
 import numba as nb
 nb.njit()
 from numba import jit
-import DebiasedModel.FairClassificationZafar.loss_funcs as lf # loss funcs that can be optimized subject to various constraints
+import src.DebiasingModel.FairClassificationZafar.loss_funcs as lf # loss funcs that can be optimized subject to various constraints
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import train_test_split
 
@@ -125,7 +125,7 @@ class FairConstraints(BaseEstimator, ClassifierMixin):
         self.w = self.train_classifier(x_train, y_train, s_control,
                          sensitive_attrs, self.mode,
                          thresh, self.seed)
-        self.Calib = CalibratedClassifierCV(base_estimator=self, method='sigmoid', cv='prefit')
+        self.Calib = CalibratedClassifierCV(estimator=self, method='sigmoid', cv='prefit')
         self.Calib.fit(X_calib, y_calib[self.output])
         return 0
 

@@ -173,7 +173,7 @@ class GenerateCF(ABC):
             self.pipeSF.fit(self.x_train, self.y_train[self.sensitiveFeature])
         self.pipe = Pipeline(steps=[('preprocessor', transformations),
                         ('classifier', self.model)])
-        if model in ['AdvDeb', 'LFERM']:
+        if model in ['AdvDeb', 'LFERM', 'FairC']:
             self.pipe.fit(self.x_train, self.y_train)
         else:
             self.pipe.fit(self.x_train, self.y_train[self.outcomeFeature])
