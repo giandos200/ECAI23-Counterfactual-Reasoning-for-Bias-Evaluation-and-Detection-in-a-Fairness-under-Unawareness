@@ -46,6 +46,7 @@ class GenerateCF(ABC):
             self.model = XGBClassifier(**params)
 
         elif model == 'MLP':
+            params['hidden_layer_sizes'] = eval(params['hidden_layer_sizes'])
             from sklearn.neural_network import MLPClassifier
             self.model = MLPClassifier(**params)
 
