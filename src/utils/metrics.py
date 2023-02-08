@@ -48,7 +48,7 @@ def DifferenceEqualOpportunity(y_pred,y_real,SensitiveCat, outcome, privileged, 
     TN_priv, FP_priv, FN_priv, TP_priv = confusion_matrix(y_real_priv[outcome],y_priv, labels=labels).ravel()
     TN_unpriv, FP_unpriv, FN_unpriv, TP_unpriv = confusion_matrix(y_real_unpriv[outcome], y_unpriv, labels=labels).ravel()
 
-    return abs(TP_unpriv/y_real_unpriv.shape[0] - TP_priv/y_real_priv.shape[0])
+    return abs(TP_unpriv/(TP_unpriv+FN_unpriv) - TP_priv/(TP_priv+FN_priv))
 
 def DifferenceAverageOdds(y_pred,y_real,SensitiveCat, outcome, privileged, unprivileged,labels):
     """
@@ -70,4 +70,4 @@ def DifferenceAverageOdds(y_pred,y_real,SensitiveCat, outcome, privileged, unpri
     y_real_unpriv = y_real[y_real[SensitiveCat] == unprivileged]
     TN_priv, FP_priv, FN_priv, TP_priv = confusion_matrix(y_real_priv[outcome], y_priv,  labels=labels).ravel()
     TN_unpriv, FP_unpriv, FN_unpriv, TP_unpriv = confusion_matrix(y_real_unpriv[outcome], y_unpriv,  labels=labels).ravel()
-    return 0.5*(abs(FP_unpriv/y_real_unpriv.shape[0]-FP_priv/y_real_priv.shape[0])+abs(TP_unpriv/y_real_unpriv.shape[0]-TP_priv/y_real_priv.shape[0]))
+    return 0.5*(abs(FP_unpriv/(FP_unpriv+TN_unpriv)-FP_priv/(FP_priv+TN_priv))+abs(TP_unpriv/(TP_unpriv+FN_unpriv)-TP_priv/(TP_priv+FN_priv)))
