@@ -110,7 +110,7 @@ models:
     reg_alpha: 0.01
     reg_lambda: 1
   AdvDeb:
-    prot_attr: ['gender']
+    prot_attr: ['marital-status']
     adversary_loss_weight: 0.1
     num_epochs: 100
     batch_size: 512

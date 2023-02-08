@@ -102,7 +102,7 @@ models:
     use_label_encoder: False
     validate_parameters: 1
   AdvDeb:
-    prot_attr: [ 'gender' ]
+    prot_attr: [ 'age' ]
     adversary_loss_weight: 0.05
     num_epochs: 70
     batch_size: 64

@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from random import shuffle
-import DebiasedModel.FairClassificationZafar.loss_funcs as lf # our implementation of loss funcs
+import src.DebiasingModel.FairClassificationZafar.loss_funcs as lf # our implementation of loss funcs
 from scipy.optimize import minimize # for loss func minimization
 from multiprocessing import Pool, Process, Queue
 from collections import defaultdict

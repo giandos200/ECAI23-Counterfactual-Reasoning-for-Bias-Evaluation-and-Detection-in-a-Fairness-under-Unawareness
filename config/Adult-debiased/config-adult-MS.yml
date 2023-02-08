@@ -108,7 +108,7 @@ models:
     use_label_encoder: False
     validate_parameters: 1
   AdvDeb:
-    prot_attr: ['gender']
+    prot_attr: ['marital-status']
     adversary_loss_weight: 0.1
     num_epochs: 50
     batch_size: 256
