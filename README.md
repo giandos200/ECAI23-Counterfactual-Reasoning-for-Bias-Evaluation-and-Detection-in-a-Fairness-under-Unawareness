@@ -1,8 +1,8 @@
-# IJCAI23
+# ECAI23
 
 
 ## Official repository of: 
-## "Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting`` - IJCAI 2023
+## "Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting`` - ECAI 2023
 
 Anonymous Authors
 
