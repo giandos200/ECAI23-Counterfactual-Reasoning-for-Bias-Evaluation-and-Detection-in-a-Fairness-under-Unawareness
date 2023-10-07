@@ -2,9 +2,11 @@
 
 
 ## Official repository of: 
-## "Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting`` - ECAI 2023
+## "Counterfactual Reasoning for Bias Evaluation and Detection in a Fairness under Unawareness setting`` 
+Authors:
 
-Anonymous Authors
+Giandomenico Cornacchia, Vito Walter Anelli, Fedelucio Narducci, Azzurra Ragone, Eugenio Di Sciascio
+
 
 <img src="figure/Figure.svg">
 
